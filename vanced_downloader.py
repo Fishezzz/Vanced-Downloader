@@ -5,7 +5,7 @@ import requests
 
 API_URL = 'https://api.vancedapp.com/api/v1'
 METADATA_URL_ARCHIVED = 'https://web.archive.org/web/20220315012841if_/https://api.vancedapp.com/api/v1/latest.json'
-BAKCUP_DOWNLOAD_URL_BASE = 'https://github.com/Fishezzz/Vanced-Downloader/raw/master'
+BAKCUP_DOWNLOAD_URL_BASE = 'https://github.com/Fishezzz/Vanced-Downloader/raw/master/'
 
 session = requests.Session()
 session.headers['User-Agent'] = session.headers.get('User-Agent', 'python-requests') + ' Vanced Downloader'
@@ -13,10 +13,12 @@ session.headers['User-Agent'] = session.headers.get('User-Agent', 'python-reques
 response = session.get(API_URL + '/latest.json')
 if response.status_code == 200:
     print('Retrieved metadata')
+    vanced_site_down = False
     latest_metadata = response.json()
     vanced_metadata = latest_metadata['vanced']
 elif response.status_code == 404:
     print('Could not retrieve metadata! Trying Web Archive backup.')
+    vanced_site_down = True
     response2 = session.get(METADATA_URL_ARCHIVED)
     if response2.status_code == 200:
         print('Retrieved metadata from Web Archive backup.')
@@ -35,9 +37,6 @@ if not os.path.isdir(BASE_PATH):
     os.mkdir(BASE_PATH)
 
 def download(url: str, fname: str, session=requests):  # ripped from https://stackoverflow.com/a/62113293, modified for simpler syntax
-    if BAKCUP_DOWNLOAD_URL_BASE not in url:
-        return 2
-    
     try:		
         resp = session.get(url, stream=True)
         with tqdm.wrapattr(
@@ -77,40 +76,37 @@ for root in roots:
     if not os.path.isdir(path):
         os.mkdir(path)
     
-    vanced_url = API_URL + '/apks/v' + version + '/' + root
+    VANCED_URL = API_URL + '/apks/v' + version + '/' + root
     
     print('Downloading vanced ' + root + ' themed apks...')
     for theme in themes:
         fullpath = path + '/' + theme + '.apk'
-        THEME_URLS = [
-            vanced_url + '/Theme/' + theme + '.apk',
-            BAKCUP_DOWNLOAD_URL_BASE + fullpath
-        ]
-        apk_name = 'vanced ' + root + ' ' + theme
-        #print('Downloading ' + apk_name + ' theme apk...')
-        multi_download(THEME_URLS, apk_name, fullpath, session)
+        if vanced_site_down:
+            theme_url = BAKCUP_DOWNLOAD_URL_BASE + fullpath
+        else:
+            theme_url = VANCED_URL + '/Theme/' + theme + '.apk'
+        #print('Downloading vanced ' + root + ' ' + theme + ' theme apk...')
+        download(theme_url, fullpath, session)
     
     print('Downloading vanced ' + root + ' language apks...')
     for lang in langs:
         fullpath = path + '/' + 'split_config.' + lang + '.apk'
-        LANG_URLS = [
-            vanced_url + '/Language/split_config.' + lang + '.apk',
-            BAKCUP_DOWNLOAD_URL_BASE + fullpath
-        ]
-        apk_name = 'vanced ' + root + ' ' + lang
-        #print('Downloading ' + apk_name + ' language apk...')
-        multi_download(LANG_URLS, apk_name, fullpath, session)
+        if vanced_site_down:
+            lang_url = BAKCUP_DOWNLOAD_URL_BASE + fullpath
+        else:
+            lang_url = VANCED_URL + '/Language/split_config.' + lang + '.apk'
+        #print('Downloading vanced ' + root + ' ' + lang + ' language apk...')
+        download(lang_url, fullpath, session)
     
     print('Downloading vanced ' + root + ' architecture apks...')
     for arch in archs:
         fullpath = path + '/' + 'split_config.' + arch + '.apk'
-        ARCH_URLS = [
-            vanced_url + '/Arch/split_config.' + arch + '.apk',
-            BAKCUP_DOWNLOAD_URL_BASE + fullpath
-        ]
-        apk_name = 'vanced ' + root + ' ' + arch
-        #print('Downloading ' + apk_name + ' architecture apk...')
-        multi_download(ARCH_URLS, apk_name, fullpath, session)
+        if vanced_site_down:
+            arch_url = BAKCUP_DOWNLOAD_URL_BASE + fullpath
+        else:
+            arch_url = VANCED_URL + '/Arch/split_config.' + arch + '.apk'
+        #print('Downloading vanced ' + root + ' ' + arch + ' architecture apk...')
+        download(arch_url, fullpath, session)
 
 
 print('>> Vanced Music')
@@ -124,15 +120,14 @@ for root in roots:
     path = BASE_PATH + '/music/' + root
     if not os.path.isdir(path):
         os.mkdir(path)
-	
+    
     fullpath = path + '/' + root + '.apk'
-    MUSIC_URLS = [
-        API_URL + '/music/v' + version + '/' + root + '.apk',
-        BAKCUP_DOWNLOAD_URL_BASE + fullpath
-    ]
-    apk_name = 'music ' + root
-    print('Downloading ' + apk_name + ' apk...')
-    multi_download(MUSIC_URLS, apk_name, fullpath, session)
+    if vanced_site_down:
+        music_url = BAKCUP_DOWNLOAD_URL_BASE + fullpath
+    else:
+        music_url = API_URL + '/music/v' + version + '/' + root + '.apk'
+    print('Downloading music ' + root + ' apk...')
+    download(music_url, fullpath, session)
 
 
 print('>> Manager')
